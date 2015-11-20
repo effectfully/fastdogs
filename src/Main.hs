@@ -11,6 +11,8 @@ import System.Directory
 import System.Process (readProcess)
 import System.FilePath
 
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Options.Applicative
 import qualified Options.Applicative as O
 import Data.Version (showVersion)
@@ -148,10 +150,10 @@ main = do
       | null cli_dirlist_file = return []
       | otherwise = readLinedFile cli_dirlist_file
 
-    readSourceFile :: IO [FilePath]
+    readSourceFile :: IO (Set FilePath)
     readSourceFile
-      | null cli_filelist_file = return []
-      | otherwise = readLinedFile cli_filelist_file
+      | null cli_filelist_file = return Set.empty
+      | otherwise = Set.fromList <$> readLinedFile cli_filelist_file
 
     cli_hasktags_args = (words cli_hasktags_args1) ++ cli_hasktags_args2
 
@@ -166,9 +168,10 @@ main = do
       go AUTO = if has_stack then go ON else go OFF
 
     -- Finds *hs in dirs, but filter-out Setup.hs
-    findSources :: [FilePath] -> IO [FilePath]
+    findSources :: [FilePath] -> IO (Set FilePath)
+    findSources [] = return Set.empty
     findSources dirs =
-      filter (not . isSuffixOf "Setup.hs") . lines <$>
+      Set.fromList . filter (not . isSuffixOf "Setup.hs") . lines <$>
       runp "find" (dirs ++ words "-type f -and ( -name *\\.hs -or -name *\\.lhs -or -name *\\.hsc )") []
 
     grepImports :: String -> Maybe String
@@ -178,8 +181,8 @@ main = do
         _ -> Nothing
 
     -- Produces list of imported modules for file.hs given
-    findModules :: [FilePath] -> IO [String]
-    findModules files = (catMaybes . map grepImports . lines) <$> runp "cat" files []
+    findModules :: Set FilePath -> IO [String]
+    findModules files = (catMaybes . map grepImports . lines) <$> runp "cat" (Set.toList files) []
 
     -- Maps import name to haskell package name
     iname2module :: String -> IO (Maybe String)
@@ -216,12 +219,12 @@ main = do
       checkapp "hasktags"
       files <- do
         dirs <- readDirFile
-        ss_local <- (++) <$> readSourceFile <*> findSources dirs
+        ss_local <- Set.union <$> readSourceFile <*> findSources dirs
         when (null ss_local) $ do
           fail $ "Haskdogs were not able to find any sources in " <> (intercalate ", " dirs)
         ss_l1deps <- findModules ss_local >>= inames2modules >>= unpackModules >>= findSources
-        return $ ss_local ++ ss_l1deps
-      runp "hasktags" ((if null cli_hasktags_args then def_hasktags_args else cli_hasktags_args) ++ files) []
+        return $ ss_local `mappend` ss_l1deps
+      runp "hasktags" ((if null cli_hasktags_args then def_hasktags_args else cli_hasktags_args) ++ Set.toList files) []
       putStrLn "\nSuccess"
 
   {- _real_main_ -}

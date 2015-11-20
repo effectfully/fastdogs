@@ -40,6 +40,7 @@ Executable haskdogs
                       , directory
                       , optparse-applicative
                       , process
+                      , containers
 
   Ghc-options:          -fwarn-tabs
 
