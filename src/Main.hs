@@ -115,7 +115,7 @@ main = do
     eprint = hPutStrLn stderr
 
     runp nm args inp = do
-      vprint $ nm ++ " " ++ unwords args
+      vprint $ "> " ++ nm ++ " " ++ unwords args
       readProcess nm args inp
 
     -- Run GNU which tool
