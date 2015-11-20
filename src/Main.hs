@@ -156,8 +156,8 @@ main = do
     cli_hasktags_args = (words cli_hasktags_args1) ++ cli_hasktags_args2
 
     runp_ghc_pkgs args = go cli_use_stack where
-      go ON = runp "stack" (["exec", "ghc-pkg", "--"] ++ args) []
-      go OFF = runp "ghc-pkg" args []
+      go ON = runp "stack" (["exec", "ghc-pkg", "--"] ++ (words cli_ghc_pkgs_args) ++ args) []
+      go OFF = runp "ghc-pkg" (words cli_ghc_pkgs_args ++ args) []
       go AUTO = if has_stack then go ON else go OFF
 
     cabal_or_stack = go cli_use_stack where
@@ -193,18 +193,19 @@ main = do
 
     -- Unapcks haskel package to the sourcedir
     unpackModule :: FilePath -> IO (Maybe FilePath)
-    unpackModule ((datadir</>) -> p) = do
-        exists <- doesDirectoryExist (datadir</>p)
+    unpackModule mod = do
+        let p = datadir</>mod
+        exists <- doesDirectoryExist p
         case exists of
           True ->  do
-            vprint $ "Already unpacked " ++ p
+            vprint $ "Already unpacked " ++ mod
             return (Just p)
           False -> do
             bracket_ (setCurrentDirectory datadir) (setCurrentDirectory cwd) $
-              ( runp cabal_or_stack ["unpack", p] [] >> return (Just p)
+              ( runp cabal_or_stack ["unpack", mod] [] >> return (Just p)
               ) `catch`
               (\(_ :: SomeException) ->
-                eprint ("Can't unpack " ++ p) >> return Nothing
+                eprint ("Can't unpack " ++ mod) >> return Nothing
               )
 
     unpackModules :: [FilePath] -> IO [FilePath]
