@@ -11,6 +11,7 @@ import System.Directory
 import System.Process (readProcess)
 import System.FilePath
 
+import Data.Monoid((<>))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Options.Applicative
