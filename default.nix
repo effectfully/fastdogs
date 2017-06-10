@@ -5,7 +5,8 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, base, bytestring, containers, directory
-      , filepath, optparse-applicative, process, stdenv, text
+      , filepath, optparse-applicative, process, stdenv, text,
+      cabal-install
       }:
       mkDerivation {
         pname = "haskdogs";
@@ -16,6 +17,9 @@ let
         executableHaskellDepends = [
           base bytestring containers directory filepath optparse-applicative
           process text
+        ];
+        libraryHaskellDepends = [
+          cabal-install
         ];
         homepage = "http://github.com/grwlf/haskdogs";
         description = "Generate tags file for Haskell project and its nearest deps";
