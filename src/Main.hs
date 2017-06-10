@@ -32,6 +32,7 @@ data Opts = Opts {
     cli_dirlist_file :: FilePath
   , cli_filelist_file :: FilePath
   , cli_hasktags_args1 :: String
+  , cli_stack_args :: String
   , cli_ghc_pkgs_args :: String
   , cli_use_stack :: Tristate
   -- , cli_use_sandbox :: Tristate
@@ -62,6 +63,11 @@ optsParser = Opts
         metavar "OPTS" <>
         value "" <>
         help ("Arguments to pass to hasktags. " ++ unwords def_hasktags_args ++ " is the default"))
+  <*> strOption (
+        long "stack-args" <>
+        metavar "OPTS" <>
+        value "" <>
+        help ("Arguments to pass to stack"))
   <*> strOption (
         long "ghc-pkg-args" <>
         metavar "OPTS" <>
@@ -159,7 +165,7 @@ main = do
     cli_hasktags_args = (words cli_hasktags_args1) ++ cli_hasktags_args2
 
     runp_ghc_pkgs args = go cli_use_stack where
-      go ON = runp "stack" (["exec", "ghc-pkg", "--"] ++ (words cli_ghc_pkgs_args) ++ args) []
+      go ON = runp "stack" (["exec", "ghc-pkg"] ++ (words cli_stack_args) ++ ["--"] ++ (words cli_ghc_pkgs_args) ++ args) []
       go OFF = runp "ghc-pkg" (words cli_ghc_pkgs_args ++ args) []
       go AUTO = if has_stack then go ON else go OFF
 
