@@ -112,6 +112,16 @@ same tags quickly with just one C-] command.
 
 Just copy the code above to your ~/.vimrc and reload the vim.
 
+
+NIXOS Note
+----------
+
+The easiest way to generate tags file on NixOS is to open a shell containing
+neccesary programs. Nix-shell should do it if run as follows:
+
+    nix-shell -p haskellPackages.haskdogs  haskellPackages.hasktags haskellPackages.Cabal ghc
+
+
 --
 Sergey
 <grrwlf@gmail.com>
