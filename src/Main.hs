@@ -51,13 +51,13 @@ optsParser = Opts
         short 'd' <>
         metavar "FILE" <>
         value "" <>
-        help "File containing directory list to process" )
+        help "File containing directory list to process (use '-' to read from stdin)" )
   <*> strOption (
         long "file-list" <>
         short 'f' <>
         metavar "FILE" <>
         value "" <>
-        help "File containing Haskell sources to process" )
+        help "File containing Haskell sources to process (use '-' to read from stdin)" )
   <*> strOption (
         long "hasktags-args" <>
         metavar "OPTS" <>
