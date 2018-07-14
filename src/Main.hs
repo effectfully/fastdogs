@@ -35,6 +35,7 @@ data Opts = Opts {
   , cli_stack_args :: String
   , cli_ghc_pkgs_args :: String
   , cli_use_stack :: Tristate
+  , cli_deps_dir :: FilePath
   -- , cli_use_sandbox :: Tristate
   , cli_hasktags_args2 :: [String]
   } deriving(Show)
@@ -44,8 +45,8 @@ data Tristate = ON | OFF | AUTO
 
 def_hasktags_args = words "-c -x"
 
-optsParser :: Parser Opts
-optsParser = Opts
+optsParser :: FilePath -> Parser Opts
+optsParser def_deps_dir = Opts
   <$> strOption (
         long "dir-list" <>
         short 'd' <>
@@ -77,6 +78,11 @@ optsParser = Opts
         long "use-stack" <>
         value AUTO <>
         help "Execute ghc-pkg via stack, arg is ON, OFF or AUTO (the default)")
+  <*> strOption (
+        long "deps-dir" <>
+        metavar "PATH" <>
+        value def_deps_dir <>
+        help ("Specify the directory PATH to save the dependencies of the project. Default is [" <> def_deps_dir <> "]"))
   -- <*> option auto (
   --       long "include-sandbox" <>
   --       value AUTO <>
@@ -90,7 +96,7 @@ versionParser :: Parser (a -> a)
 versionParser = infoOption (exename ++ " version " ++ (showVersion Paths.version))
                      (long "version" <> help "Show version number")
 
-opts = info (helper <*> versionParser <*> optsParser)
+opts def_deps_dir = info (helper <*> versionParser <*> (optsParser def_deps_dir))
       ( fullDesc <> header (exename ++ " - Recursive hasktags-based TAGS generator for a Haskell project" ))
 
 {-
@@ -105,15 +111,16 @@ opts = info (helper <*> versionParser <*> optsParser)
 main :: IO()
 main = do
 
-  Opts {..} <- execParser opts
+  def_deps_dir <- (</> ".haskdogs") <$> getHomeDirectory
+
+  Opts {..} <- execParser (opts def_deps_dir)
 
   let
     -- Directory to unpack sources into
     getDataDir :: IO FilePath
     getDataDir = do
-      x <- (</> ".haskdogs") <$> getHomeDirectory
-      createDirectoryIfMissing False x
-      return x
+      createDirectoryIfMissing False cli_deps_dir
+      return cli_deps_dir
 
     cli_verbose = True
 
