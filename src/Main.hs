@@ -231,7 +231,9 @@ main = do
           fail $ "Haskdogs were not able to find any sources in " <> (intercalate ", " dirs)
         ss_l1deps <- findModules ss_local >>= inames2modules >>= unpackModules >>= findSources
         return $ ss_local `mappend` ss_l1deps
-      runp "hasktags" ((if null cli_hasktags_args then def_hasktags_args else cli_hasktags_args) ++ Set.toList files) []
+      sfiles <- pure $ unlines $ Set.toList files
+      vprint sfiles
+      runp "hasktags" ((if null cli_hasktags_args then def_hasktags_args else cli_hasktags_args) ++ ["STDIN"]) sfiles
       putStrLn "\nSuccess"
 
   {- _real_main_ -}
