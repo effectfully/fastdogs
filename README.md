@@ -34,11 +34,11 @@ RUNNING
 
 2. cd to your Haskell project dir
 
-    $ cd $HOME/my-haskell-project
+       $ cd $HOME/my-haskell-project
 
 3. Run haskdogs without arguments to generate tags file in Vim-compatible format
 
-    $ haskdogs
+       $ haskdogs
 
 Emacs users would probably want to add -e hasktags option to build Emacs-compatible TAGS.
 
