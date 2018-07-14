@@ -42,26 +42,33 @@ RUNNING
 
 Emacs users would probably want to add -e hasktags option to build Emacs-compatible TAGS.
 
-
-
     $ haskdogs --help
     haskdogs - Recursive hasktags-based TAGS generator for a Haskell project
 
     Usage: haskdogs [--version] [-d|--dir-list FILE] [-f|--file-list FILE]
-                    [--hasktags-args OPTS] [--ghc-pkg-args OPTS] [--use-stack ARG]
-                    [OPTS]
+                    [--hasktags-args OPTS] [--stack-args OPTS] [--ghc-pkg-args OPTS]
+                    [--use-stack ARG] [--deps-dir PATH] [--raw] [OPTS]
 
     Available options:
       -h,--help                Show this help text
       --version                Show version number
-      -d,--dir-list FILE       File containing directory list to process
-      -f,--file-list FILE      File containing Haskell sources to process
-      --hasktags-args OPTS     Arguments to pass to hasktags. -c -x is the default
+      -d,--dir-list FILE       File containing directory list to process (use '-' to
+                               read from stdin)
+      -f,--file-list FILE      File containing Haskell sources to process (use '-'
+                               to read from stdin)
+      --hasktags-args OPTS     Arguments to pass to hasktags. -c -x is the default.
+                               Not for raw mode.
+      --stack-args OPTS        Arguments to pass to stack
       --ghc-pkg-args OPTS      Arguments to pass to ghc-pkgs
       --use-stack ARG          Execute ghc-pkg via stack, arg is ON, OFF or AUTO
                                (the default)
+      --deps-dir PATH          Specify the directory PATH to place the dependencies
+                               of the project. Default is [/home/grwlf/.haskdogs]
+      --raw                    Don't execute hasktags, print list of files to tag on
+                               the STDOUT. The output may be piped into hasktags
+                               like this: `haskdogs --raw | hasktags -c -x STDIN'
       OPTS                     More hasktags options, use `--' to pass flags
-                               starting with `-'
+                               starting with `-'. Not for raw mode.
 
 
 The following error could be caused by (over)strict Haskell policy regarding

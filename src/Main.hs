@@ -36,6 +36,7 @@ data Opts = Opts {
   , cli_ghc_pkgs_args :: String
   , cli_use_stack :: Tristate
   , cli_deps_dir :: FilePath
+  , cli_raw_mode :: Bool
   -- , cli_use_sandbox :: Tristate
   , cli_hasktags_args2 :: [String]
   } deriving(Show)
@@ -63,7 +64,7 @@ optsParser def_deps_dir = Opts
         long "hasktags-args" <>
         metavar "OPTS" <>
         value "" <>
-        help ("Arguments to pass to hasktags. " ++ unwords def_hasktags_args ++ " is the default"))
+        help ("Arguments to pass to hasktags. " ++ unwords def_hasktags_args ++ " is the default. Not for raw mode."))
   <*> strOption (
         long "stack-args" <>
         metavar "OPTS" <>
@@ -83,11 +84,14 @@ optsParser def_deps_dir = Opts
         metavar "PATH" <>
         value def_deps_dir <>
         help ("Specify the directory PATH to place the dependencies of the project. Default is [" <> def_deps_dir <> "]"))
+  <*> flag False True (
+        long "raw" <>
+        help "Don't execute hasktags, print list of files to tag on the STDOUT. The output may be piped into hasktags like this: `haskdogs --raw | hasktags -c -x STDIN'")
   -- <*> option auto (
   --       long "include-sandbox" <>
   --       value AUTO <>
   --       help "(!UNIMPLEMENTED!) Include .cabal-sandbox package databases")
-  <*> many (argument str (metavar "OPTS" <> help "More hasktags options, use `--' to pass flags starting with `-'"))
+  <*> many (argument str (metavar "OPTS" <> help "More hasktags options, use `--' to pass flags starting with `-'. Not for raw mode."))
 
 exename :: String
 exename = "haskdogs"
@@ -116,6 +120,8 @@ main = do
   Opts {..} <- execParser (opts def_deps_dir)
 
   let
+    cli_hasktags_args = (words cli_hasktags_args1) ++ cli_hasktags_args2
+
     -- Directory to unpack sources into
     getDataDir :: IO FilePath
     getDataDir = do
@@ -146,6 +152,9 @@ main = do
         (runp "which" [appname] [] >> return True) `catch`
           (\(e::SomeException) -> vprint ("GNU which falied to find " ++ appname) >> return False)
 
+  when ((not $ null cli_hasktags_args) && cli_raw_mode) $ do
+    fail $ "--raw is incompatible with passing hasktags arguments"
+
   cwd <- getCurrentDirectory
   datadir <- getDataDir
   has_stack <- hasapp "stack"
@@ -169,7 +178,6 @@ main = do
       | null cli_filelist_file = return Set.empty
       | otherwise = Set.fromList <$> readLinedFile cli_filelist_file
 
-    cli_hasktags_args = (words cli_hasktags_args1) ++ cli_hasktags_args2
 
     runp_ghc_pkgs args = go cli_use_stack where
       go ON = runp "stack" (["exec", "ghc-pkg"] ++ (words cli_stack_args) ++ ["--"] ++ (words cli_ghc_pkgs_args) ++ args) []
@@ -238,10 +246,15 @@ main = do
           fail $ "Haskdogs were not able to find any sources in " <> (intercalate ", " dirs)
         ss_l1deps <- findModules ss_local >>= inames2modules >>= unpackModules >>= findSources
         return $ ss_local `mappend` ss_l1deps
-      sfiles <- pure $ unlines $ Set.toList files
-      vprint sfiles
-      runp "hasktags" ((if null cli_hasktags_args then def_hasktags_args else cli_hasktags_args) ++ ["STDIN"]) sfiles
-      putStrLn "\nSuccess"
+      case cli_raw_mode of
+        True -> do
+          forM_ (Set.toList files) $ \f-> do
+            putStrLn f
+        False -> do
+          sfiles <- pure $ unlines $ Set.toList files
+          vprint sfiles
+          runp "hasktags" ((if null cli_hasktags_args then def_hasktags_args else cli_hasktags_args) ++ ["STDIN"]) sfiles
+          putStrLn "\nSuccess"
 
   {- _real_main_ -}
   gentags
