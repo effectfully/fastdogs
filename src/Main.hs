@@ -82,7 +82,7 @@ optsParser def_deps_dir = Opts
         long "deps-dir" <>
         metavar "PATH" <>
         value def_deps_dir <>
-        help ("Specify the directory PATH to save the dependencies of the project. Default is [" <> def_deps_dir <> "]"))
+        help ("Specify the directory PATH to place the dependencies of the project. Default is [" <> def_deps_dir <> "]"))
   -- <*> option auto (
   --       long "include-sandbox" <>
   --       value AUTO <>

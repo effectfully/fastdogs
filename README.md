@@ -1,14 +1,15 @@
 HaskDogs
 ========
 
-Haskdogs is a shellscript-like tool which creates tag file for entire
-haskell project directory. It takes into account first-level dependencies by
-recursively scanning imports and adding matching packages to the final
-tag list.
+Haskdogs is a shellscript-like tool which creates tag file for entire haskell
+project directory. It takes into account first-level dependencies by recursively
+scanning imports and adding matching projects to the dependency list. Next,
+Haskdogs uses cabal or stack to unpack their sources into a temporary directory,
+which is `~/.haskdogs` by default. Finally, hasktags is called to produce the
+`tags` file.
 
-As a result, programmer can use his/her text editor supporting tags (vim, for
-example) to jump directly to definition of any standard or foreign function
-he/she uses.
+As a result, programmer can use his/her text editor supporting tags (e.g. vim)
+to jump directly to definition of any standard or foreign function he/she uses.
 
 Note, that haskdogs relies on some GNU programs as well as on Unix shell
 commands such as 'cd', 'mkdir' and so on. Also it would run 'stack' and ghc-pkg'
@@ -33,11 +34,11 @@ RUNNING
 
 2. cd to your Haskell project dir
 
-	$ cd $HOME/my-haskell-project
+    $ cd $HOME/my-haskell-project
 
 3. Run haskdogs without arguments to generate tags file in Vim-compatible format
 
-	$ haskdogs
+    $ haskdogs
 
 Emacs users would probably want to add -e hasktags option to build Emacs-compatible TAGS.
 
@@ -113,17 +114,13 @@ same tags quickly with just one C-] command.
 Just copy the code above to your ~/.vimrc and reload the vim.
 
 
-NIXOS Note
-----------
+NIX NOTE
+--------
 
-The easiest way to generate tags file on NixOS is to open a shell containing
-neccesary programs. Nix-shell should do it if run as follows:
+The easiest way to generate Hakell tags on [Nix](https://nixos.org/nix)-machine
+is to run Haskdogs from `nix-shell` as follows:
 
-    nix-shell -p haskellPackages.haskdogs  haskellPackages.hasktags haskellPackages.Cabal ghc
-
-
---
-Sergey
-<grrwlf@gmail.com>
+    nix-shell -p haskellPackages.haskdogs haskellPackages.hasktags haskellPackages.Cabal ghc
+    (nix-shell) $ haskdogs
 
 
