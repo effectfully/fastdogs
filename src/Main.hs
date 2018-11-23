@@ -158,6 +158,7 @@ main = do
   cwd <- getCurrentDirectory
   datadir <- getDataDir
   has_stack <- hasapp "stack"
+  has_cabal <- hasapp "cabal"
 
   let
 
@@ -178,16 +179,23 @@ main = do
       | null cli_filelist_file = return Set.empty
       | otherwise = Set.fromList <$> readLinedFile cli_filelist_file
 
-
     runp_ghc_pkgs args = go cli_use_stack where
       go ON = runp "stack" (["exec", "ghc-pkg"] ++ (words cli_stack_args) ++ ["--"] ++ (words cli_ghc_pkgs_args) ++ args) []
       go OFF = runp "ghc-pkg" (words cli_ghc_pkgs_args ++ args) []
-      go AUTO = if has_stack then go ON else go OFF
+      go AUTO =
+        case (has_stack,has_cabal) of
+          (True,_) -> go ON
+          (False,True) -> go OFF
+          (False,False) -> fail "Either `stack` or `cabal` should be installed"
 
     cabal_or_stack = go cli_use_stack where
       go ON = "stack"
       go OFF = "cabal"
-      go AUTO = if has_stack then go ON else go OFF
+      go AUTO =
+        case (has_stack,has_cabal) of
+          (True,_) -> go ON
+          (False,True) -> go OFF
+          (False,False) -> fail "Either `stack` or `cabal` should be installed"
 
     -- Finds *hs in dirs, but filter-out Setup.hs
     findSources :: [FilePath] -> IO (Set FilePath)
