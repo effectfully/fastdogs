@@ -127,7 +127,7 @@ NIX NOTE
 The easiest way to generate Hakell tags on [Nix](https://nixos.org/nix)-machine
 is to run Haskdogs from `nix-shell` as follows:
 
-    nix-shell -p haskellPackages.haskdogs haskellPackages.hasktags haskellPackages.Cabal ghc
+    nix-shell -p haskellPackages.haskdogs haskellPackages.hasktags haskellPackages.cabal-install ghc
     (nix-shell) $ haskdogs
 
 
