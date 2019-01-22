@@ -38,6 +38,7 @@ data Opts = Opts {
   , cli_use_stack :: Tristate
   , cli_deps_dir :: FilePath
   , cli_raw_mode :: Bool
+  , cli_verbose        :: Bool
   -- , cli_use_sandbox :: Tristate
   , cli_hasktags_args2 :: [String]
   } deriving(Show)
@@ -94,6 +95,9 @@ optsParser def_deps_dir = Opts
   <*> flag False True (
         long "raw" <>
         help "Don't execute hasktags, print list of files to tag on the STDOUT. The output may be piped into hasktags like this: `haskdogs --raw | hasktags -c -x STDIN'")
+  <*> flag False True (
+        long "verbose" <>
+        help "Output logs")
 
   -- <*> option auto (
   --       long "include-sandbox" <>
@@ -135,8 +139,6 @@ main = do
     getDataDir = do
       createDirectoryIfMissing False cli_deps_dir
       return cli_deps_dir
-
-    cli_verbose = True
 
     vprint a
       | cli_verbose = eprint a
