@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, ScopedTypeVariables, ViewPatterns #-}
+{-# LANGUAGE RecordWildCards, ScopedTypeVariables #-}
 module Main (main) where
 
 import Control.Monad
@@ -44,7 +44,7 @@ data Opts = Opts {
 data Tristate = ON | OFF | AUTO
   deriving(Eq, Ord, Show, Read)
 
-def_hasktags_args = words "-c -x"
+defHasktagsArgs = words "-c -x"
 
 optsParser :: FilePath -> Parser Opts
 optsParser def_deps_dir = Opts
@@ -64,12 +64,12 @@ optsParser def_deps_dir = Opts
         long "hasktags-args" <>
         metavar "OPTS" <>
         value "" <>
-        help ("Arguments to pass to hasktags. " ++ unwords def_hasktags_args ++ " is the default. Not for raw mode."))
+        help ("Arguments to pass to hasktags. " ++ unwords defHasktagsArgs ++ " is the default. Not for raw mode."))
   <*> strOption (
         long "stack-args" <>
         metavar "OPTS" <>
         value "" <>
-        help ("Arguments to pass to stack"))
+        help "Arguments to pass to stack")
   <*> strOption (
         long "ghc-pkg-args" <>
         metavar "OPTS" <>
@@ -97,10 +97,10 @@ exename :: String
 exename = "haskdogs"
 
 versionParser :: Parser (a -> a)
-versionParser = infoOption (exename ++ " version " ++ (showVersion Paths.version))
+versionParser = infoOption (exename ++ " version " ++ showVersion Paths.version)
                      (long "version" <> help "Show version number")
 
-opts def_deps_dir = info (helper <*> versionParser <*> (optsParser def_deps_dir))
+opts def_deps_dir = info (helper <*> versionParser <*> optsParser def_deps_dir)
       ( fullDesc <> header (exename ++ " - Recursive hasktags-based TAGS generator for a Haskell project" ))
 
 {-
@@ -120,7 +120,7 @@ main = do
   Opts {..} <- execParser (opts def_deps_dir)
 
   let
-    cli_hasktags_args = (words cli_hasktags_args1) ++ cli_hasktags_args2
+    cli_hasktags_args = words cli_hasktags_args1 ++ cli_hasktags_args2
 
     -- Directory to unpack sources into
     getDataDir :: IO FilePath
@@ -142,9 +142,9 @@ main = do
 
     -- Run GNU which tool
     checkapp :: String -> IO ()
-    checkapp appname = do
-      (runp "which" [appname] [] >> return ()) `onException`
-        (eprint ("Please Install \"" ++ appname ++ "\" application"))
+    checkapp appname =
+      void (runp "which" [appname] []) `onException`
+        eprint ("Please Install \"" ++ appname ++ "\" application")
 
     hasapp :: String -> IO Bool
     hasapp appname = do
@@ -152,8 +152,8 @@ main = do
         (runp "which" [appname] [] >> return True) `catch`
           (\(e::SomeException) -> vprint ("GNU which falied to find " ++ appname) >> return False)
 
-  when ((not $ null cli_hasktags_args) && cli_raw_mode) $ do
-    fail $ "--raw is incompatible with passing hasktags arguments"
+  when (not (null cli_hasktags_args) && cli_raw_mode) $
+    fail "--raw is incompatible with passing hasktags arguments"
 
   cwd <- getCurrentDirectory
   datadir <- getDataDir
@@ -164,7 +164,7 @@ main = do
 
     readLinedFile f =
       lines <$> (hGetContents =<< (
-        if (f=="-")
+        if f=="-"
           then return stdin
           else openFile f ReadMode))
 
@@ -180,7 +180,7 @@ main = do
       | otherwise = Set.fromList <$> readLinedFile cli_filelist_file
 
     runp_ghc_pkgs args = go cli_use_stack where
-      go ON = runp "stack" (["exec", "ghc-pkg"] ++ (words cli_stack_args) ++ ["--"] ++ (words cli_ghc_pkgs_args) ++ args) []
+      go ON = runp "stack" (["exec", "ghc-pkg"] ++ words cli_stack_args ++ ["--"] ++ words cli_ghc_pkgs_args ++ args) []
       go OFF = runp "ghc-pkg" (words cli_ghc_pkgs_args ++ args) []
       go AUTO =
         case (has_stack,has_cabal) of
@@ -212,13 +212,13 @@ main = do
 
     -- Produces list of imported modules for file.hs given
     findModules :: Set FilePath -> IO [String]
-    findModules files = (catMaybes . map grepImports . lines) <$> runp "cat" (Set.toList files) []
+    findModules files = mapMaybe grepImports . lines <$> runp "cat" (Set.toList files) []
 
     -- Maps import name to haskell package name
     iname2module :: String -> IO (Maybe String)
     iname2module iname = do
-        mod <- (listToMaybe . words) <$> (runp_ghc_pkgs ["--simple-output", "find-module", iname])
-        vprint $ "Import " ++ iname ++ " resolved to " ++ (fromMaybe "NULL" mod)
+        mod <- listToMaybe . words <$> runp_ghc_pkgs ["--simple-output", "find-module", iname]
+        vprint $ "Import " ++ iname ++ " resolved to " ++ fromMaybe "NULL" mod
         return mod
 
     inames2modules :: [String] -> IO [FilePath]
@@ -229,11 +229,11 @@ main = do
     unpackModule mod = do
         let p = datadir</>mod
         exists <- doesDirectoryExist p
-        case exists of
-          True ->  do
+        if exists
+          then do
             vprint $ "Already unpacked " ++ mod
             return (Just p)
-          False -> do
+          else
             bracket_ (setCurrentDirectory datadir) (setCurrentDirectory cwd) $
               ( runp cabal_or_stack ["unpack", mod] [] >> return (Just p)
               ) `catch`
@@ -250,21 +250,18 @@ main = do
       files <- do
         dirs <- readDirFile
         ss_local <- Set.union <$> readSourceFile <*> findSources dirs
-        when (null ss_local) $ do
-          fail $ "Haskdogs were not able to find any sources in " <> (intercalate ", " dirs)
+        when (null ss_local) $
+          fail $ "Haskdogs were not able to find any sources in " <> intercalate ", " dirs
         ss_l1deps <- findModules ss_local >>= inames2modules >>= unpackModules >>= findSources
         return $ ss_local `mappend` ss_l1deps
-      case cli_raw_mode of
-        True -> do
-          forM_ (Set.toList files) $ \f-> do
-            putStrLn f
-        False -> do
-          sfiles <- pure $ unlines $ Set.toList files
+      if cli_raw_mode
+        then
+          forM_ (Set.toList files) putStrLn
+        else do
+          let sfiles = unlines $ Set.toList files
           vprint sfiles
-          runp "hasktags" ((if null cli_hasktags_args then def_hasktags_args else cli_hasktags_args) ++ ["STDIN"]) sfiles
+          runp "hasktags" ((if null cli_hasktags_args then defHasktagsArgs else cli_hasktags_args) ++ ["STDIN"]) sfiles
           putStrLn "\nSuccess"
 
   {- _real_main_ -}
   gentags
-
-
