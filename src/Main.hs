@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards, ScopedTypeVariables, MultiWayIf #-}
 module Main (main) where
 
 import Control.Monad
@@ -31,6 +31,7 @@ import qualified Paths_haskdogs as Paths
 data Opts = Opts {
     cli_dirlist_file :: FilePath
   , cli_filelist_file :: FilePath
+  , cli_input_file :: FilePath
   , cli_hasktags_args1 :: String
   , cli_stack_args :: String
   , cli_ghc_pkgs_args :: String
@@ -61,6 +62,12 @@ optsParser def_deps_dir = Opts
         value "" <>
         help "File containing Haskell sources to process (use '-' to read from stdin)" )
   <*> strOption (
+        long "input" <>
+        short 'i' <>
+        metavar "FILE" <>
+        value "" <>
+        help "Single Haskell file to process (use '-' to read Haskell source from stdin)" )
+  <*> strOption (
         long "hasktags-args" <>
         metavar "OPTS" <>
         value "" <>
@@ -87,6 +94,7 @@ optsParser def_deps_dir = Opts
   <*> flag False True (
         long "raw" <>
         help "Don't execute hasktags, print list of files to tag on the STDOUT. The output may be piped into hasktags like this: `haskdogs --raw | hasktags -c -x STDIN'")
+
   -- <*> option auto (
   --       long "include-sandbox" <>
   --       value AUTO <>
@@ -162,6 +170,7 @@ main = do
 
   let
 
+    readLinedFile :: FilePath -> IO [String]
     readLinedFile f =
       lines <$> (hGetContents =<< (
         if f=="-"
@@ -170,14 +179,17 @@ main = do
 
     readDirFile :: IO [FilePath]
     readDirFile
-      | null cli_dirlist_file && null cli_filelist_file = return ["."]
+      | null cli_dirlist_file && null cli_filelist_file && null cli_input_file = return ["."]
       | null cli_dirlist_file = return []
       | otherwise = readLinedFile cli_dirlist_file
 
     readSourceFile :: IO (Set FilePath)
-    readSourceFile
-      | null cli_filelist_file = return Set.empty
-      | otherwise = Set.fromList <$> readLinedFile cli_filelist_file
+    readSourceFile = do
+      files1 <- if | null cli_filelist_file -> return Set.empty
+                   | otherwise -> Set.fromList <$> readLinedFile cli_filelist_file
+      files2 <- if | null cli_input_file -> return Set.empty
+                   | otherwise -> return $ Set.singleton cli_input_file
+      return $ files1 <> files2
 
     runp_ghc_pkgs args = go cli_use_stack where
       go ON = runp "stack" (["exec", "ghc-pkg"] ++ words cli_stack_args ++ ["--"] ++ words cli_ghc_pkgs_args ++ args) []
@@ -212,7 +224,10 @@ main = do
 
     -- Produces list of imported modules for file.hs given
     findModules :: Set FilePath -> IO [String]
-    findModules files = mapMaybe grepImports . lines <$> runp "cat" (Set.toList files) []
+    findModules files =
+        concatMapM (fmap (mapMaybe grepImports) . readLinedFile) $ Set.toList files
+      where
+        concatMapM f = fmap concat . mapM f
 
     -- Maps import name to haskell package name
     iname2module :: String -> IO (Maybe String)
@@ -244,16 +259,19 @@ main = do
     unpackModules :: [FilePath] -> IO [FilePath]
     unpackModules ms = catMaybes <$> mapM unpackModule ms
 
+    getFiles :: IO (Set FilePath)
+    getFiles = do
+      dirs <- readDirFile
+      ss_local <- mappend <$> readSourceFile <*> findSources dirs
+      when (null ss_local) $
+        fail $ "Haskdogs were not able to find any sources in " <> intercalate ", " dirs
+      ss_l1deps <- findModules ss_local >>= inames2modules >>= unpackModules >>= findSources
+      return $ Set.filter (/= "-") ss_local `mappend` ss_l1deps
+
     gentags :: IO ()
     gentags = do
       checkapp "hasktags"
-      files <- do
-        dirs <- readDirFile
-        ss_local <- Set.union <$> readSourceFile <*> findSources dirs
-        when (null ss_local) $
-          fail $ "Haskdogs were not able to find any sources in " <> intercalate ", " dirs
-        ss_l1deps <- findModules ss_local >>= inames2modules >>= unpackModules >>= findSources
-        return $ ss_local `mappend` ss_l1deps
+      files <- getFiles
       if cli_raw_mode
         then
           forM_ (Set.toList files) putStrLn
