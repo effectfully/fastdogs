@@ -34,12 +34,13 @@ Executable haskdogs
   Hs-source-dirs:       src
   Main-is:              Main.hs
   Build-depends:        base >= 4.8 && < 5
+                      , extra
                       , filepath
                       , bytestring
                       , text
                       , directory
                       , optparse-applicative
-                      , process
+                      , process-extras
                       , containers
                       , hasktags
 

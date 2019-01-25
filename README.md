@@ -46,8 +46,9 @@ Emacs users would probably want to add -e hasktags option to build Emacs-compati
     haskdogs - Recursive hasktags-based TAGS generator for a Haskell project
 
     Usage: haskdogs [--version] [-d|--dir-list FILE] [-f|--file-list FILE]
-                    [--hasktags-args OPTS] [--stack-args OPTS] [--ghc-pkg-args OPTS]
-                    [--use-stack ARG] [--deps-dir PATH] [--raw] [OPTS]
+                    [-i|--input FILE] [--hasktags-args OPTS] [--stack-args OPTS]
+                    [--ghc-pkg-args OPTS] [--use-stack ARG] [--deps-dir PATH]
+                    [--raw] [OPTS]
 
     Available options:
       -h,--help                Show this help text
@@ -56,6 +57,8 @@ Emacs users would probably want to add -e hasktags option to build Emacs-compati
                                read from stdin)
       -f,--file-list FILE      File containing Haskell sources to process (use '-'
                                to read from stdin)
+      -i,--input FILE          Single Haskell file to process (use '-' to read
+                               Haskell source from stdin)
       --hasktags-args OPTS     Arguments to pass to hasktags. -c -x is the default.
                                Not for raw mode.
       --stack-args OPTS        Arguments to pass to stack
@@ -63,13 +66,12 @@ Emacs users would probably want to add -e hasktags option to build Emacs-compati
       --use-stack ARG          Execute ghc-pkg via stack, arg is ON, OFF or AUTO
                                (the default)
       --deps-dir PATH          Specify the directory PATH to place the dependencies
-                               of the project. Default is [/home/grwlf/.haskdogs]
+                               of the project. Default is [$HOME/.haskdogs]
       --raw                    Don't execute hasktags, print list of files to tag on
                                the STDOUT. The output may be piped into hasktags
                                like this: `haskdogs --raw | hasktags -c -x STDIN'
       OPTS                     More hasktags options, use `--' to pass flags
                                starting with `-'. Not for raw mode.
-
 
 The following error could be caused by (over)strict Haskell policy regarding
 Unicode locale:
@@ -131,3 +133,13 @@ is to run Haskdogs from `nix-shell` as follows:
     (nix-shell) $ haskdogs
 
 
+TIPS
+-----
+
+* create tags for specific package
+
+  ``echo 'import Control.Lens' | haskdogs -i -``
+
+* incremental update
+
+  ``haskdogs -i % --hasktags-args "-x -c -a" | sort -u -o tags tags``
