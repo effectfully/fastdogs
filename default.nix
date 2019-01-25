@@ -5,7 +5,7 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, base, bytestring, containers, directory
-      , filepath, optparse-applicative, process, stdenv, text,
+      , filepath, optparse-applicative, process-extras, stdenv, text,
       cabal-install, hasktags
       }:
       mkDerivation {
@@ -16,7 +16,7 @@ let
         isExecutable = true;
         executableHaskellDepends = [
           base bytestring containers directory filepath optparse-applicative
-          process text hasktags
+          process-extras text hasktags
         ];
         libraryHaskellDepends = [
           cabal-install

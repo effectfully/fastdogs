@@ -48,7 +48,7 @@ Emacs users would probably want to add -e hasktags option to build Emacs-compati
     Usage: haskdogs [--version] [-d|--dir-list FILE] [-f|--file-list FILE]
                     [-i|--input FILE] [--hasktags-args OPTS] [--stack-args OPTS]
                     [--ghc-pkg-args OPTS] [--use-stack ARG] [--deps-dir PATH]
-                    [--raw] [OPTS]
+                    [--raw] [-q|--quiet] [OPTS]
 
     Available options:
       -h,--help                Show this help text
@@ -70,6 +70,7 @@ Emacs users would probably want to add -e hasktags option to build Emacs-compati
       --raw                    Don't execute hasktags, print list of files to tag on
                                the STDOUT. The output may be piped into hasktags
                                like this: `haskdogs --raw | hasktags -c -x STDIN'
+      -q,--quiet               Don't print verbose messages
       OPTS                     More hasktags options, use `--' to pass flags
                                starting with `-'. Not for raw mode.
 
@@ -143,3 +144,4 @@ TIPS
 * incremental update
 
   ``haskdogs -i % --hasktags-args "-x -c -a" | sort -u -o tags tags``
+
