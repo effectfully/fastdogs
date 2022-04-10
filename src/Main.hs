@@ -23,7 +23,7 @@ import Options.Applicative
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import qualified Data.Set as Set
-import qualified Paths_haskdogs as Paths
+import qualified Paths_fastdogs as Paths
 
 {-
   ___        _   _
@@ -38,20 +38,21 @@ data Opts = Opts {
     cli_dirlist_file   :: FilePath
   , cli_filelist_file  :: FilePath
   , cli_input_file     :: FilePath
-  , cli_hasktags_args1 :: String
+  , cli_fastTags_args1 :: String
   , cli_stack_args     :: String
   , cli_ghc_pkgs_args  :: String
   , cli_use_stack      :: Tristate
   , cli_deps_dir       :: FilePath
   , cli_raw_mode       :: Bool
   , cli_verbose        :: Bool
-  , cli_hasktags_args2 :: [String]
+  , cli_fastTags_args2 :: [String]
   } deriving(Show)
 
 data Tristate = ON | OFF | AUTO
   deriving(Eq, Ord, Show, Read)
 
-defHasktagsArgs = words "-c -x"
+-- generate an emacs TAGS file by default
+defFastTagsArgs = words "-e"
 
 optsParser :: FilePath -> Parser Opts
 optsParser def_deps_dir = Opts
@@ -74,10 +75,10 @@ optsParser def_deps_dir = Opts
         value "" <>
         help "Single Haskell file to process (use '-' to read Haskell source from stdin)" )
   <*> strOption (
-        long "hasktags-args" <>
+        long "fast-tags-args" <>
         metavar "OPTS" <>
         value "" <>
-        help ("Arguments to pass to hasktags. " <> unwords defHasktagsArgs <> " is the default. Not for raw mode."))
+        help ("Arguments to pass to fast-tags. " <> unwords defFastTagsArgs <> " is the default. Not for raw mode."))
   <*> strOption (
         long "stack-args" <>
         metavar "OPTS" <>
@@ -99,22 +100,22 @@ optsParser def_deps_dir = Opts
         help ("Specify the directory PATH to place the dependencies of the project. Default is [" <> def_deps_dir <> "]"))
   <*> flag False True (
         long "raw" <>
-        help "Don't execute hasktags, print list of files to tag on the STDOUT. The output may be piped into hasktags like this: `haskdogs --raw | hasktags -c -x STDIN'")
+        help "Don't execute fast-tags, print list of files to tag on the STDOUT. The output may be piped into fast-tags like this: `fastdogs --raw | fast-tags <opts> -'")
   <*> flag True False (
         long "quiet" <>
         short 'q' <>
         help "Don't print verbose messages")
-  <*> many (argument str (metavar "OPTS" <> help "More hasktags options, use `--' to pass flags starting with `-'. Not for raw mode."))
+  <*> many (argument str (metavar "OPTS" <> help "More fast-tags options, use `--' to pass flags starting with `-'. Not for raw mode."))
 
 exename :: String
-exename = "haskdogs"
+exename = "fastdogs"
 
 versionParser :: Parser (a -> a)
 versionParser = infoOption (exename <> " version " <> showVersion Paths.version)
                      (long "version" <> help "Show version number")
 
 opts def_deps_dir = info (helper <*> versionParser <*> optsParser def_deps_dir)
-  ( fullDesc <> header (exename <> " - Recursive hasktags-based TAGS generator for a Haskell project" ))
+  ( fullDesc <> header (exename <> " - Recursive fast-tags-based TAGS generator for a Haskell project" ))
 
 {-
  __  __       _
@@ -128,12 +129,12 @@ opts def_deps_dir = info (helper <*> versionParser <*> optsParser def_deps_dir)
 main :: IO()
 main = do
 
-  def_deps_dir <- (</> ".haskdogs") <$> getHomeDirectory
+  def_deps_dir <- (</> ".fastdogs") <$> getHomeDirectory
 
   Opts {..} <- execParser (opts def_deps_dir)
 
   let
-    cli_hasktags_args = words cli_hasktags_args1 <> cli_hasktags_args2
+    cli_fastTags_args = words cli_fastTags_args1 <> cli_fastTags_args2
 
     -- Directory to unpack sources into
     getDataDir :: IO FilePath
@@ -166,8 +167,8 @@ main = do
         (runp "which" [appname] "" >> return True) `catch`
           (\(e::SomeException) -> vprint ("GNU which falied to find " <> appname) >> return False)
 
-  when (not (null cli_hasktags_args) && cli_raw_mode) $
-    fail "--raw is incompatible with passing hasktags arguments"
+  when (not (null cli_fastTags_args) && cli_raw_mode) $
+    fail "--raw is incompatible with passing fast-tags arguments"
 
   cwd <- getCurrentDirectory
   datadir <- getDataDir
@@ -269,13 +270,13 @@ main = do
       dirs <- readDirFile
       ss_local <- mappend <$> readSourceFile <*> findSources dirs
       when (null ss_local) $
-        fail $ "Haskdogs were not able to find any sources in " <> intercalate ", " dirs
+        fail $ "Fastdogs were not able to find any sources in " <> intercalate ", " dirs
       ss_l1deps <- findModules ss_local >>= inames2modules >>= unpackModules >>= findSources
       return $ Set.filter (/= "-") ss_local `mappend` ss_l1deps
 
     gentags :: IO ()
     gentags = do
-      checkapp "hasktags"
+      checkapp "fast-tags"
       files <- getFiles
       if cli_raw_mode
         then
@@ -283,7 +284,7 @@ main = do
         else do
           let sfiles = Text.unlines $ Set.toList files
           vprint (unpack sfiles)
-          runp "hasktags" ((if null cli_hasktags_args then defHasktagsArgs else cli_hasktags_args) <> ["STDIN"]) sfiles
+          runp "fast-tags" ((if null cli_fastTags_args then defFastTagsArgs else cli_fastTags_args) <> ["-"]) sfiles
           putStrLn "\nSuccess"
 
   {- _real_main_ -}

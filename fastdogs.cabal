@@ -1,17 +1,19 @@
-Name:                haskdogs
+Name:                fastdogs
 Version:             0.6.0
 Synopsis:            Generate tags file for Haskell project and its nearest deps
-Homepage:            http://github.com/grwlf/haskdogs
+Homepage:            http://github.com/effectfully/fastdogs
 License:             BSD3
 License-file:        LICENSE
-Author:              Sergey Mironov
-Maintainer:          grrwlf@gmail.com
+Author:              Sergey Mironov, effectfully
+Maintainer:          effectfully@gmail.com
 Category:            Development
 Build-type:          Simple
 cabal-version:       1.22
 extra-source-files:  README.md
 Description:
-    Haskdogs is a 300-lines tool which creates tag file for entire Haskell
+    Warning: this is a very quick-and-dirty port of `haskdogs` to `fast-tags`.
+
+    `fastdogs` is a 300-lines tool which creates tag file for entire Haskell
     project directory. It takes into account first-level dependencies by
     recursively scanning imports and adding matching packages to the final tag
     list.
@@ -20,17 +22,12 @@ Description:
     for example) to jump directly to definition of any standard or foreign
     function he/she uses.
 
-    Note, that haskdogs calls some Unix shell commands like 'grep' so this tool
+    Note, that fastdogs calls some Unix shell commands like 'grep' so this tool
     will likely fail to work on pure Windows platforms.
 
-    Starting from 0.3, cmdline args will be passed to hasktags followed by a
-    filelist generated.
-
-    Starting from 0.4, haskdogs will use stack toolchain.
-
-Executable haskdogs
+Executable fastdogs
   Default-language:    Haskell2010
-  other-modules:        Paths_haskdogs
+  other-modules:        Paths_fastdogs
   Hs-source-dirs:       src
   Main-is:              Main.hs
   Build-depends:        base >= 4.8 && < 5
@@ -46,5 +43,4 @@ Executable haskdogs
 
 Source-repository head
   Type:     git
-  Location: http://github.com/grwlf/haskdogs
-
+  Location: http://github.com/effectfully/fastdogs
